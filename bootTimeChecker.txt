@@ -1,0 +1,120 @@
+<#
+This script queries all the VDAS, and sends an email with the following information in HTML format
+  - servername
+  - Registration state
+  - Maintenance Mode
+  - DeliveryGroup
+   - SessionCount
+   - BootTime
+   - UPtime
+ 
+ The USP of this script is that it sorts the servers in descending order of Uptime, with highest
+ Uptime servers on top, and latest boot servers at the bottom. This allows to monitor the server reboot okay or not.
+ Unreachable servers are given at the bottom of the HTML table
+
+
+#>
+
+function bootTimechecker1{
+
+Param(
+    [Parameter(Mandatory)]
+    [string]
+    $ComputerName,
+    [switch]$scount    
+)
+
+$controllerNames = gc c:\users\akadri\controllers.txt
+$ddc = $controllerNames | select-string  $ComputerName
+$ddcName = $ddc.tostring()
+$pingTest = Test-Connection -ComputerName $ddcName -Count 1
+if($pingtest.statuscode -eq 0) {write-host "Ping test is successful for $ddcName" -ForegroundColor Green}
+else { write-host "Ping failed for $ddcName" -ForegroundColor Red
+            return
+
+}
+      
+$toaddress = @("asrar.kadri@a.com")
+$t = icm -computername $ddcName {
+asnp citrix*
+get-brokermachine -maxrecordcount 1000 | ?{$_.machinename -notmatch "S-1-5-21"}
+}
+
+$output = get-ciminstance -computername $t.dnsname -classname win32_operatingsystem 2> err.txt
+
+<#
+$vdiskJob = icm -computername $t.dnsname -scriptblock { 1 | select @{l='csname';e={$env:computername}},@{l='Diskname';e={(gp -path "HKLM:\system\CurrentControlSet\services\bnistack\PvsAgent").diskname}}} -asjob
+wait-job -id $vdiskJob.id -Timeout 75
+stop-job -id $vdiskJob.id
+$vdiskData = Receive-Job -id $vdiskJob.Id | select csname,Diskname
+#>
+$arr= @()
+$numOfRegisteredMahines = $t | ?{$_.registrationstate -eq "Registered"} | measure | select -ExpandProperty count
+$numofUnregisteredMachines = $t | ?{$_.registrationstate -eq "Unregistered"} | measure | select -ExpandProperty count
+foreach($o in $output){
+ $ht=[ordered]@{}
+ $ht.compname = $o.csname
+ $ht.IP = $t | ? {$_.dnsname -match $o.csname} | select -expandproperty IPAddress 
+ $ht.RegState = $t | ? {$_.dnsname -match $o.csname} | select -expandproperty registrationstate
+ $ht.MaintMode = $t | ?{$_.dnsname -match $o.csname} | select -expandproperty inmaintenancemode
+ $ht.DG = $t | ?{$_.dnsname -match $o.csname} | select -expandproperty desktopGroupName
+ $ht.Sessions = $t | ?{$_.dnsname -match $o.csname} | select -expandproperty sessioncount
+ #$ht.Vdiskname = $vdiskData | ? {$_.dnsname -match $vdiskData.csname} | select -expandproperty Diskname
+ $ht.bootTime = $o.lastbootuptime.tostring("MM/dd:HH-mm")
+ $time1 = new-timespan $o.lastbootuptime (get-date)
+ $ht.uptime = $time1.tostring("dd\.hh\:mm\:ss")
+ #$ht.diskname = $vdiskData | ? {$_.csname -match $o.csname} | select -expandproperty Diskname
+ $temp = new-object PSObject -property $ht
+ $arr += $temp  
+
+}
+
+$filename = $ddcName.split(".")[0] + "$(get-date -format yyyyMMdd_HH_mm_ss)" +"_vdaStatus.csv"
+if(test-path .\$filename) { remove-item .\$filename }
+$Style = @"
+<style>
+    
+    TH{border-width: 1px;padding: 3px;border-style: solid;border-color: black;}
+    TD{border-width: 1px;padding: 3px;border-style: solid;border-color: black;}
+    TH{border-width: 1px;padding: 3px;border-style: solid;border-color: black;background-color:#778899}
+    
+    tr:nth-child(odd) {background-color: lightgray;}
+    </style>
+"@
+if($scount) {
+$arr | sort Sessions -desc | export-csv .\$filename -NoTypeInformation
+$arr | sort Sessions -desc | ft -AutoSize
+}
+else
+{
+$arr | sort uptime -desc | export-csv .\$filename -NoTypeInformation
+$arr | sort uptime -desc | ft -auto
+}
+$preContent1 = @"
+   <P> 
+  <b> Number of Registered Machines = $numOfRegisteredMahines<br />
+   Number of Unregistered Machines = $numofUnregisteredMachines <br />
+   </b>
+   </P>
+"@
+
+$unresponsiveServers = gc .\err.txt | sls -Pattern pscomputername
+$m = ($unresponsiveServers | Out-String -stream ).split(":")
+$z1 = ($m -notmatch "Pscomputername") | out-string
+
+$z2 = "###############The following servers did not respond to uptime query #################`n`n"
+$z3 = $z2 + $z1 
+$outfile = Import-Csv .\$filename |ConvertTo-Html -Head $Style -PreContent $preContent1 -PostContent $z3
+
+$mailbody = @" 
+$outfile 
+"@
+
+send-mailmessage -from "monitor@a.com" -to $toaddress  -BodyAsHtml $mailbody -Subject "$ddc Status report" -Attachments .\$filename -SmtpServer TS.com
+
+
+#send-mailmessage -from "monitor@abc.com" -to "asrar.kadri@abc.com" -Body ($unresponsiveServers | outstring) -Subject "$ddc Status report" -SmtpServer TS13RE1.eclptsc.eclipsnet.com
+#Send-MailMessage -To "asrar.kadri@abc.com" -From "reboots@abc.com" -Body $z -BodyAsHtml -SmtpServer TS13RE1.eclptsc.eclipsnet.com
+ #$arr |sort uptime -desc | format-table -auto
+
+}
