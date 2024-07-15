@@ -1,0 +1,45 @@
+<#
+	This powershell script queries "Uninstall registry - HKLM:\software\Microsoft\Windows\CurrentVersion\Uninstall 
+and checks if "rapid7 agent" is installed. If it is installed, it extracts displayname, and version of the agent. It creates a custom object with properties
+server hostname, OS version, rapid7 agent version, and stores in CSV file
+
+
+#>
+
+
+$Error.clear()
+
+$p = @{
+
+   Computername = gc .\rw_fqdn.txt
+ 
+    ScriptBlock = {
+
+    $ht=[ordered]@{}
+   
+
+    $t = gci -path "HKLM:\software\Microsoft\Windows\CurrentVersion\Uninstall";
+
+     $r7prop = $t | ? {(gp -path $_.pspath).displayname -match "rapid"} |`
+
+      select @{l='ServerName';e={$env:computername}},@{l='Name';e={(gp -path $_.pspath).displayname}},@{l='Version';e={(gp -path $_.pspath).displayversion}  }
+
+   
+   $osVersion =  gwmi -cl win32_operatingsystem | select @{l='OS';e={"$($_.caption)" + "--" + "$($_.osarchitecture)"}} 
+   $osversion2 =  gwmi -cl win32_computersystem
+   $ht.servername = $env:computername
+   $ht.FQDN = $osversion2.dnshostname +"." + $osversion2.domain
+   $ht.OS = $osVersion.os
+   $ht.r7Name = $r7prop.name
+   $ht.r7version = $r7prop.Version
+
+   $objtemp = new-object -TypeName psobject -Property $ht
+   $objtemp
+}
+
+}
+ 
+
+icm @p -HideComputerName 2> errorr7Query_10172023d.txt |select servername,r7Version 
+
+#export-csv -Path r7result_10172023d.csv -NoTypeInformation
