@@ -1,0 +1,63 @@
+<#
+ .DESCRIPTION
+     This PS script takes 3 or 4 letters as argument and then checks the match in TXT file (controller names in FQDN format). It does a invoke-command to 
+	 run the command get-brokermachine on the controller. Output is machinename,ipaddress,RegistrationState,Mainmode(enabled/disabled),desktopGroupname,Sessioncount
+ 
+
+#>
+
+
+
+function get-machineStatus{
+Param(
+    [Parameter(Mandatory)]
+    [string]
+    $ComputerName    
+)
+
+$controllerNames = gc c:\users\ajkadri\controllers.txt
+$ddc = $controllerNames | select-string  $ComputerName
+$ddcName = $ddc.tostring()
+write-host "connecting to $ddcname" -foregroundcolor cyan
+
+
+$pass = "CTX_R3port1ng$" | ConvertTo-SecureString -AsPlainText -force
+$cred1 = new-object System.Management.Automation.PSCredential("eclptsc\_citrixReporting",$pass)
+
+
+
+$testConn = test-connection -ComputerName $ddcname -count 2 2> out-null
+if($testConn){
+         icm -computername $ddcname -credential $cred1 -scriptblock {
+
+         if((get-service -Name CitrixBrokerService).status -eq "Running")         {   asnp citrix*
+             $tempName = $env:COMPUTERNAME
+            if($tempName.Substring(0,2) -match "P[W,E,S]"){
+             $ActiveDG = Get-BrokerDesktopGroup | sort sessions -desc |select -first 2 | select -ExpandProperty name
+            get-brokermachine -maxrecordcount 1000 | ?{$_.desktopgroupname -in $ActiveDG}| select @{l="machinename";e={$_.machinename -replace "\w+\\",$null}},ipaddress,registrationstate,@{l="MaintMode";e={$_.inmaintenancemode}},@{l="Desktopgroup";e={$_.desktopGroupname}},loadindex,sessioncount |ft -auto
+
+            }
+            else{
+
+             get-brokermachine -maxrecordcount 1000 | ?{$_.machinename -notmatch "S-1-5-21"} | select @{l="machinename";e={$_.machinename -replace "\w+\\",$null}},ipaddress,registrationstate,@{l="MaintMode";e={$_.inmaintenancemode}},@{l="Desktopgroup";e={$_.desktopGroupname}},loadindex,sessioncount |ft -auto
+             }
+            #send-mailmessage -from "checks@a.com" -to "asrar.kadri@a.com" -body $body1 -subject "Reboot Checks on $env:computername" -smtp "12.12.12.10"
+             
+         }
+
+elseif ((get-service -name imaservice).status -eq "Running"){
+
+    asnp citrix*
+    $passwd = "CTX_R3port1ng$" | convertto-securestring -asplaintext -force
+    $creden1 = new-object System.management.Automation.PScredential("eclptsc\_citrixreporting",$passwd)
+    #get-xaserver | select servername,@{l="Ipaddress";e={$_.ipaddresses[0]}},logonmode,@{l="Loadindex";e={if(!(get-xaserverload -servername $_.servername 2> out-null)) {"errorLoad"} else{ get-xaserverload -servername $_.servername| select -expandproperty load}}}|ft -auto
+ get-xaserver | sort servername | select servername,@{l="Ipaddress";e={$_.ipaddresses[0]}},logonmode,@{l="Loadindex";e={if(!(get-xaserverload -servername $_.servername 2> out-null)) {"errorLoad"} else{ get-xaserverload -servername $_.servername| select -expandproperty load}}},`
+    @{l="UserCount";e={(gwmi -cl win32_terminalservice -computername $_.servername -credential $creden1 | select -ExpandProperty totalsessions) - 2}}|ft -auto
+    
+#send-mailmessage -from "checks@al.com" -to "asrar.kadri@al.com" -body $body1 -subject "Reboot Checks on $env:computername" -smtp "172.30.4.18"
+}
+         } 
+}
+
+
+}
