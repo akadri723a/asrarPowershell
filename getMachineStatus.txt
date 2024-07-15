@@ -21,8 +21,8 @@ $ddcName = $ddc.tostring()
 write-host "connecting to $ddcname" -foregroundcolor cyan
 
 
-$pass = "CTX_R3port1ng$" | ConvertTo-SecureString -AsPlainText -force
-$cred1 = new-object System.Management.Automation.PSCredential("eclptsc\_citrixReporting",$pass)
+$pass = "Password" | ConvertTo-SecureString -AsPlainText -force
+$cred1 = new-object System.Management.Automation.PSCredential("domain\userID",$pass)
 
 
 
@@ -48,8 +48,8 @@ if($testConn){
 elseif ((get-service -name imaservice).status -eq "Running"){
 
     asnp citrix*
-    $passwd = "CTX_R3port1ng$" | convertto-securestring -asplaintext -force
-    $creden1 = new-object System.management.Automation.PScredential("eclptsc\_citrixreporting",$passwd)
+    $passwd = "Password123" | convertto-securestring -asplaintext -force
+    $creden1 = new-object System.management.Automation.PScredential("Domain\Userid",$passwd)
     #get-xaserver | select servername,@{l="Ipaddress";e={$_.ipaddresses[0]}},logonmode,@{l="Loadindex";e={if(!(get-xaserverload -servername $_.servername 2> out-null)) {"errorLoad"} else{ get-xaserverload -servername $_.servername| select -expandproperty load}}}|ft -auto
  get-xaserver | sort servername | select servername,@{l="Ipaddress";e={$_.ipaddresses[0]}},logonmode,@{l="Loadindex";e={if(!(get-xaserverload -servername $_.servername 2> out-null)) {"errorLoad"} else{ get-xaserverload -servername $_.servername| select -expandproperty load}}},`
     @{l="UserCount";e={(gwmi -cl win32_terminalservice -computername $_.servername -credential $creden1 | select -ExpandProperty totalsessions) - 2}}|ft -auto
