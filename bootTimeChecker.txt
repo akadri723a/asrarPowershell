@@ -113,7 +113,7 @@ $outfile
 send-mailmessage -from "monitor@a.com" -to $toaddress  -BodyAsHtml $mailbody -Subject "$ddc Status report" -Attachments .\$filename -SmtpServer TS.com
 
 
-#send-mailmessage -from "monitor@abc.com" -to "asrar.kadri@abc.com" -Body ($unresponsiveServers | outstring) -Subject "$ddc Status report" -SmtpServer TS13RE1.eclptsc.eclipsnet.com
+#send-mailmessage -from "monitor@abc.com" -to "asrar.kadri@abc.com" -Body ($unresponsiveServers | outstring) -Subject "$ddc Status report" -SmtpServer TS13
 #Send-MailMessage -To "asrar.kadri@abc.com" -From "reboots@abc.com" -Body $z -BodyAsHtml -SmtpServer TS13RE1.eclptsc.eclipsnet.com
  #$arr |sort uptime -desc | format-table -auto
 
