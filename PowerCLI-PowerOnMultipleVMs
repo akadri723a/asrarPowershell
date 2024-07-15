@@ -1,0 +1,11 @@
+asnp vmware*
+
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+Connect-VIServer vc1,vc2,vc3 -Credential(Get-Credential)
+
+	
+
+$servers=gc .\vm.txt
+ 
+start-vm -VM $servers -confirm:$false -ErrorAction SilentlyContinue 
