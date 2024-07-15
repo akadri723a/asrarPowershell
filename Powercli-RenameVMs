@@ -1,0 +1,21 @@
+asnp vmware*
+
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+Connect-VIServer vcenter1,vcenter2,vceneter3 -Credential(Get-Credential)
+
+
+vms = gc .\oncall_vm.txt
+ 
+get-vm -name $vms | Shutdown-VMGuest -Confirm:$false
+
+foreach($vmtemp in $vms)
+ 
+{
+	$x = get-vm -name $vmtemp
+ 
+	$newname = $x.name + "_DECOMMISSION"
+ 
+	set-vm -vm $x -name $newname -confirm:$false
+ 
+}
