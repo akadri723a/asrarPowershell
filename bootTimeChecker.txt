@@ -52,6 +52,7 @@ $arr= @()
 $numOfRegisteredMahines = $t | ?{$_.registrationstate -eq "Registered"} | measure | select -ExpandProperty count
 $numofUnregisteredMachines = $t | ?{$_.registrationstate -eq "Unregistered"} | measure | select -ExpandProperty count
 foreach($o in $output){
+
  $ht=[ordered]@{}
  $ht.compname = $o.csname
  $ht.IP = $t | ? {$_.dnsname -match $o.csname} | select -expandproperty IPAddress 
@@ -59,7 +60,9 @@ foreach($o in $output){
  $ht.MaintMode = $t | ?{$_.dnsname -match $o.csname} | select -expandproperty inmaintenancemode
  $ht.DG = $t | ?{$_.dnsname -match $o.csname} | select -expandproperty desktopGroupName
  $ht.Sessions = $t | ?{$_.dnsname -match $o.csname} | select -expandproperty sessioncount
+
  #$ht.Vdiskname = $vdiskData | ? {$_.dnsname -match $vdiskData.csname} | select -expandproperty Diskname
+
  $ht.bootTime = $o.lastbootuptime.tostring("MM/dd:HH-mm")
  $time1 = new-timespan $o.lastbootuptime (get-date)
  $ht.uptime = $time1.tostring("dd\.hh\:mm\:ss")
@@ -111,10 +114,5 @@ $outfile
 "@
 
 send-mailmessage -from "monitor@a.com" -to $toaddress  -BodyAsHtml $mailbody -Subject "$ddc Status report" -Attachments .\$filename -SmtpServer TS.com
-
-
-#send-mailmessage -from "monitor@abc.com" -to "asrar.kadri@abc.com" -Body ($unresponsiveServers | outstring) -Subject "$ddc Status report" -SmtpServer TS13
-#Send-MailMessage -To "asrar.kadri@abc.com" -From "reboots@abc.com" -Body $z -BodyAsHtml -SmtpServer TS13RE1.eclptsc.eclipsnet.com
- #$arr |sort uptime -desc | format-table -auto
 
 }
