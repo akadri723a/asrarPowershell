@@ -1,0 +1,14 @@
+icm -ComputerName (gc .\GoldServerswithFQDN.txt) -ScriptBlock {$regex = @(
+            
+             '.*XenApp.*',   
+             '.*Provisioning Services Target Device.*',
+             '.*Virtual Delivery Agent.*',
+             '.*Vmware.*'
+             );`
+    $regex1 = $regex -join "|";`
+
+
+
+$t = gci -path "HKLM:\software\Microsoft\Windows\CurrentVersion\Uninstall";`
+$t | ? {(gp -path $_.pspath).displayname -match  $regex1} | `
+select @{l='ServerName';e={$env:computername}},@{l='Name';e={(gp -path $_.pspath).displayname}},@{l='Version';e={(gp -path $_.pspath).displayversion}}}  | Export-Csv goldServerVmtoolsCUDetails0702.csv -NoTypeInformation
