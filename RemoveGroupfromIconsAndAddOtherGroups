@@ -1,0 +1,22 @@
+asnp citrix*
+
+$groupToadd = @("E\TSS - Client Delivery","EMAIN\G-All Support Group")
+
+
+$applicationtowork = Get-BrokerApplication -AdminFolderName "TW\PROD\Server Specific\" 
+
+foreach($tapp in $applicationtowork){
+
+
+	$m = Get-BrokerApplication -ApplicationName $tapp.applicationname
+
+	$m.AssociatedUserNames | % { remove-brokeruser -name $_ -Application $m}
+
+
+	foreach ($gtoAdd in $grouptoAdd){
+
+		Add-BrokerUser $gtoAdd -Application $m
+
+		}
+
+}
