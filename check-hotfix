@@ -1,0 +1,36 @@
+
+
+<#
+
+usage : icm -ComputerName (gc .\servers1029.txt) -ScriptBlock ${function:check-hotfix} -ArgumentList "KB5044343" |ft -AutoSize
+
+servers1029.txt --- TXT file containing FQDN of servers to query
+
+#>
+
+function check-hotfix{
+
+    param(
+      [string]$hotfix
+    )
+    $ht=[ordered]@{}
+    $ht.hostname = $env:computername
+    $hotfixInfo = Get-HotFix -Id $hotfix -ea 0
+    if($hotfixInfo -ne $null){
+
+     $ht.hfID = $hotfixInfo.hotfixID
+     $ht.hfInstallDate = $hotfixInfo.installedon
+     }
+
+else {
+
+    $ht.hfID ="Not Found"
+     $ht.hfInstallDate = "NA"
+    
+}
+
+$tobject = New-Object -TypeName psobject -Property $ht
+$tobject
+
+}
+
