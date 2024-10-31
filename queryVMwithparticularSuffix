@@ -1,0 +1,12 @@
+asnp vmware*
+
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+Connect-VIServer ts12vc1,ts13vc1,ts14vc1 -Credential(Get-Credential)
+
+
+$regex = @('ctgld','PVIS000','PVIS88')
+
+$regex1 = $regex -join "|"
+
+get-vm | ? {$_.name -match $regex1} | select name,@{l='FQDN';e={$_.guest.hostname}},powerstate | export-csv -Path GOLDReport_20240305.csv -NoTypeInformation 
