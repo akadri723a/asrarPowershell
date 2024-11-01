@@ -1,0 +1,45 @@
+
+
+$t 
+
+<#
+This is the raw file used as input to filter only the FQDNs 
+-------
+ritical	Microsoft.SystemCenter.AgentWatchersGroup	CHIPMC1BPVIS013.PROD.CHI.H	False	Failed to Connect to Computer	0	10/30/2024 04:34:46 AM UTC 	00:13:56.3773438	System			
+ 
+ 
+Critical	Microsoft.SystemCenter.AgentWatchersGroup	CHIPMC1BPVIS005.PROD.CHI.H	False	Failed to Connect to Computer	0	10/30/2024 04:34:51 AM UTC 	00:13:51.2803438	System			
+ 
+ 
+Critical	Microsoft.SystemCenter.AgentWatchersGroup	CHIPMC1BPVIS016.PROD.CHI.H	False	Failed to Connect to Computer	0	10/30/2024 04:34:52 AM UTC 	00:13:50.4033438	System			
+ 
+ 
+Critical	Microsoft.SystemCenter.AgentWatchersGroup	CHIPMC1BPVIS007.PROD.CHI.H	False	Failed to Connect to Computer	0	10/30/2024 04:34:52 AM UTC 	00:13:50.4003438	System			
+ 
+ 
+Critical	Microsoft.SystemCenter.AgentWatchersGroup	CHIPMC1BPVIS022.PROD.CHI.H	False	Failed to Connect to Computer	0	10/30/2024 04:34:54 AM UTC 	00:13:48.1233438	System			
+ ---------
+
+
+
+
+output
+CHIPMC1BPVIS001.PROD.CHI.H
+CHIPME1BPVIS004.PROD.CHI.H
+CHIPMC1BPVIS015.PROD.CHI.H
+CHIPME1BPVIS002.PROD.CHI.H
+CHIPMC1BPVIS026.PROD.CHI.H
+CHIPME1BPVIS005.PROD.CHI.H
+CHIPMC1BPVIS013.PROD.CHI.H
+CHIPMC1BPVIS005.PROD.CHI.H
+CHIPMC1BPVIS016.PROD.CHI.H
+CHIPMC1BPVIS007.PROD.CHI.H
+CHIPMC1BPVIS022.PROD.CHI.H
+CHIPMC1BPVIS014.PROD.CHI.H
+CHIPME1BPVIS006.PROD.CHI.H
+CHIPMC1BPVIS017.PROD.CHI.H
+CHIPMC1BPVIS019.PROD.CHI.H
+#>
+
+
+(gc .\chiraw.txt | out-string -stream | sls -Pattern "(\w)+.prod.chi.h").matches.value
