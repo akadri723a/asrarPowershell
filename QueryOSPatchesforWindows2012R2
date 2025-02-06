@@ -1,0 +1,38 @@
+
+$ws2012r2patchlist = @("KB5050115","KB5050185","KB5050048","KB890830")
+
+$arrobj =@()
+$servers = gc .\2012r2.txt
+
+foreach($server in $servers){
+
+#Get-HotFix -id $ws2012r2patchlist -ComputerName $server
+
+foreach ($patchID in $ws2012r2patchlist) { 
+$z=""
+$z =get-hotfix -id $patchID -ComputerName $server 
+if($z -ne $nuLL){
+            $ht=[ordered]@{}
+            $ht.Server = $z.csname
+            $ht.Hotfix = $z.hotfixID
+            $ht.Installedon = $z.InstalledOn
+            $objtemp = new-object -TypeName psobject -Property $ht
+            
+}
+
+else
+    {
+     $ht=[ordered]@{}
+     $ht.Server = $server.Split(".")[0]
+     $ht.Hotfix = $patchID
+     $ht.Installedon = "NA"
+     $objtemp = new-object -TypeName psobject -property $ht
+     
+    
+    } 
+  $arrobj += $objtemp
+}
+
+}
+
+$arrobj | export-csv -path .\2012r2Results134.csv -NoTypeInformation
