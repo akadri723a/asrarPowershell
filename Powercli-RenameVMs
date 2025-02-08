@@ -1,4 +1,9 @@
+<#
+   A good script to rename VMs with PowerCLI 
+#>
+
 asnp vmware*
+
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
