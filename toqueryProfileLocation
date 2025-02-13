@@ -1,0 +1,30 @@
+$p = @{
+
+    Computername = gc .\tal.txt
+
+
+    ScriptBlock = {
+
+
+                        $t = gci -path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList"
+
+
+                          $zt = $t | ?{(gp -Path $_.pspath).profileImagepath -match "akadri"} 
+
+                     $ht=[ordered]@{}
+                    $ht.server = $env:computername
+                   $ht.profileImage = (gp -path $zt.pspath).profileImagePath
+                  $ht.CentralProfile = (gp -path $zt.pspath).CentralProfile
+$ht.UPMStore = (gp -path $zt.pspath).UPMUserStoreLocation
+$ht.ProfileState = (gp -path $zt.pspath).State
+$tobj = New-Object -TypeName psobject -Property $ht
+
+$tobj
+
+}
+
+
+
+}
+
+icm @p -ea SilentlyContinue |ft -auto
