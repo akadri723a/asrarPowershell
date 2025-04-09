@@ -1,0 +1,75 @@
+
+$arr = @()
+
+# Read FQDNs from the file
+$fqdnList = Get-Content .\gouri_0218fqdn.txt
+
+Start-Transcript -Path c:\temp\logs0224.txt
+
+foreach ($t in $fqdnList) {
+    $ht = [ordered]@{
+        fqdn = $t
+    }
+    
+    Write-Host "Collecting OS data from $t"
+
+    $StartTime = Get-date
+
+    $OS = Invoke-Command -ComputerName $t -ScriptBlock { Get-WmiObject -Class Win32_OperatingSystem } -ErrorAction SilentlyContinue
+    $ht.version = $OS | Select-Object -ExpandProperty version
+    $ht.OS = $OS | Select-Object -ExpandProperty caption
+
+    $EndTime = Get-date
+
+    $timetaken = [math]::Round(($endtime - $starttime).totalseconds,0)
+
+    Write-Host "OS data collected from $t in $($timetaken))"
+
+    switch ($ht.version) {
+        "10.0.14393" { $ht.patchlist = @("KB5052006","KB890830") } # 2016
+        "10.0.17763" { $ht.patchlist = @("KB5052000","KB890830") }              #windows 2019
+        "6.3.9600"   { $ht.patchlist = @("KB5052042","KB5052108","KB5051972","KB890830") } #2012R2
+        default      { $ht.patchlist = @() }
+    }
+
+    $obj = New-Object -TypeName psobject -Property $ht
+    $arr += $obj
+}
+
+$arrobjfinal = @()
+
+$jobs = foreach ($tarr in $arr) {
+    Start-Job -ScriptBlock {
+        param ($tarr)
+        $results = @()
+        
+        if ($tarr.version -ne $null) {
+            foreach ($hotfix in $tarr.patchlist) {
+                $z = Invoke-Command -ComputerName $tarr.fqdn -ScriptBlock { param ($hotfix) Get-HotFix -Id $hotfix } -ArgumentList $hotfix -ErrorAction SilentlyContinue
+
+                $htfinal = [ordered]@{
+                    Server = $tarr.fqdn.Split(".")[0]
+                    Hotfix = $hotfix
+                    InstalledOn = if ($z -ne $null) { $z.InstalledOn } else { "NA" }
+                }
+
+                $objtempfinal = New-Object -TypeName psobject -Property $htfinal
+                $results += $objtempfinal
+            }
+        }
+
+        return $results
+    } -ArgumentList $tarr
+}
+
+# Wait for all jobs to complete and collect results
+foreach ($job in $jobs) {
+    $jobResult = Receive-Job -Job $job -Wait
+    $arrobjfinal += $jobResult
+    Remove-Job -Job $job
+}
+
+# Export results to CSV
+$arrobjfinal | Export-Csv -Path feb24v2.csv -NoTypeInformation
+$arr | export-csv -path feb24v2Servers.csv -NoTypeInformation
+End-Transcript
